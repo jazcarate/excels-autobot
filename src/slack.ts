@@ -1,4 +1,5 @@
 import env from './env'
+import { LastMessage, User } from './types'
 
 async function publishHome(userId: string, blocks: Slack.Block[]) {
   const res = await fetch('https://slack.com/api/views.publish', {
@@ -45,6 +46,22 @@ async function postMessage(
     throw new Error(t)
   } else {
     return res
+  }
+}
+
+async function chatDelete({ ts, channel }: LastMessage): Promise<void> {
+  const res = await fetch('https://slack.com/api/chat.delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      Authorization: `Bearer ${env.slack.token}`,
+    },
+    body: JSON.stringify({ channel, ts }),
+  })
+
+  const body = await res.json() // Refactor los otros reqeusts a slack como este
+  if (!res.ok || !body.ok) {
+    throw new Error(body)
   }
 }
 
@@ -203,4 +220,4 @@ export namespace Slack {
     | BlockType.Input
 }
 
-export default { publishHome, postMessage, openModal }
+export default { publishHome, postMessage, openModal, chatDelete }

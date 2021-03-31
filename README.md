@@ -20,7 +20,6 @@ Prequisitos: [`Wrangler`](https://developers.cloudflare.com/workers/cli-wrangler
 
 - Copiar a toda la gente?
 - Frontend de quienes están activos
-- Borrar el mensaje del última semana si ya lo había mandado
 - Cron
 - Logging context
 - Tests?

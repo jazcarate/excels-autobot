@@ -2,25 +2,29 @@ import { log } from './sentry'
 import airtable, { AirTableRecord } from './airtable'
 import { User } from './types'
 import slack, { Slack } from './slack'
-import crypto from 'crypto';
-import env from './env';
+import crypto from 'crypto'
+import env from './env'
+import { use } from 'chai'
 
 declare const USERS_KV: KVNamespace
 
 export async function handleRequest(request: Request): Promise<Response> {
   const slackSignature = request.headers.get('x-slack-signature')
-  const body = await request.clone().text();
-  const timestamp = request.headers.get('x-slack-request-timestamp');
+  const body = await request.clone().text()
+  const timestamp = request.headers.get('x-slack-request-timestamp')
 
-  if (!slackSignature) return new Response("Slack signature is empty.", { status: 400 })
-  const sigBasestring = 'v0:' + timestamp + ':' + body;
-  let mySignature = 'v0=' +
-    crypto.createHmac('sha256', env.slack.signSecret)
+  if (!slackSignature)
+    return new Response('Slack signature is empty.', { status: 400 })
+  const sigBasestring = 'v0:' + timestamp + ':' + body
+  let mySignature =
+    'v0=' +
+    crypto
+      .createHmac('sha256', env.slack.signSecret)
       .update(sigBasestring, 'utf8')
-      .digest('hex');
+      .digest('hex')
 
   if (mySignature !== slackSignature)
-    return new Response("Verification failed.", { status: 400 })
+    return new Response('Verification failed.', { status: 400 })
 
   if (isInteractiveCallback(request)) {
     const data = await request.formData()
@@ -260,7 +264,13 @@ async function sendValues(
     },
   ]
 
-  await slack.postMessage(slackUser, blocks)
+  if (user.lastMessage && isSoonEnoughToDelete(user.lastMessage.ts)) await slack.chatDelete(user.lastMessage)
+  const r = await slack.postMessage(slackUser, blocks)
+  const { ts, channel } = await r.json()
+
+  user.lastMessage = { ts, channel }
+  await USERS_KV.put(slackUser, JSON.stringify(user));
+
   return new Response()
 }
 
@@ -475,4 +485,9 @@ function isOptionsLoad(request: Request) {
 
 function isString(x: any): x is string {
   return typeof x === 'string' || x instanceof String
+}
+
+const ONE_WEEK_TS = 7 * 24 * 60 * 60 * 1000;
+function isSoonEnoughToDelete(ts: string) {
+  return parseFloat(ts) * 1000 + ONE_WEEK_TS > Date.now()
 }

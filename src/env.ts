@@ -15,7 +15,7 @@ export default {
   environment: process.env.NODE_ENV,
   slack: {
     token: SLACK_BOT_TOKEN,
-    signSecret: SLACK_BOT_SIGNING_SECRET
+    signSecret: SLACK_BOT_SIGNING_SECRET,
   },
   airTable: {
     key: AIRTABLE_KEY,
