@@ -13,10 +13,10 @@ const CLIENT_VERSION = '1.0.0'
 const RETRIES = 5
 
 export async function log(err: Error, request: Request) {
-  console.error(
-    JSON.stringify({ errName: err.name, errMessage: err.message, request }),
-  )
   const body = JSON.stringify(toSentryEvent(err, request))
+  console.error(
+    JSON.stringify({ errName: err.name, errMessage: err.message, body }),
+  )
 
   for (let i = 0; i <= RETRIES; i++) {
     const res = await fetch(

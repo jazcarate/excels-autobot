@@ -8,17 +8,20 @@ Every friday, before the `Excels` meeting, the slack bot queries each user that 
 
 Everything is mounted in [Cloudflare Workers](https://workers.cloudflare.com/), their `cron` and their key value storage.
 
-1. Every so often (configured by the `cron`) we querty air table to figure out
-
 ## Development
+
+Prequisitos: [`Wrangler`](https://developers.cloudflare.com/workers/cli-wrangler/install-update), `git`, `node` (check `.nvmrc`). Ayuda tener `ngrok`
 
 1. `$ git clone`
 1. `$ npm install`
-1. `$ make dev`
+1. `$ wrangler dev`
 
 ## TODO
 
-- Upload sourcemaps in build pipeline (https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/)
 - Check slack token
 - Copiar a toda la gente?
 - Frontend de quienes están activos
+- Borrar el mensaje del última semana si ya lo había mandado
+- Cron
+- Logging context
+- Tests?

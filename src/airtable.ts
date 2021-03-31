@@ -95,14 +95,16 @@ function week(date: Date): string {
   return `${date.getFullYear()}${weknumber}`
 }
 
+async function find(user: User, week: string) {
+  return findOne(`AND(Employee='${user.airtableName}', Week=${week})`)
+}
+
 async function patch(
   user: User,
   week: string,
   rec: Partial<AirTableRecord>,
 ): Promise<void> {
-  const prev = await findOne(
-    `AND(Employee='${user.airtableName}', Week=${week})`,
-  )
+  const prev = await find(user, week)
   var res
   if (prev) {
     res = await fetch(
@@ -152,4 +154,4 @@ async function patch(
   }
 }
 
-export default { lastRowOf, collaborators, week, patch }
+export default { lastRowOf, find, collaborators, week, patch }

@@ -13,13 +13,12 @@ export async function handleRequest(request: Request): Promise<Response> {
     if (!isString(payload)) {
       throw new Error('No payload in the response.')
     }
-    const j = JSON.parse(payload)
+    const j = JSON.parse(payload) // https://api.slack.com/reference/interaction-payloads/block-actions
 
     if (j.type == 'block_actions') {
       if (j.actions[0].action_id === 'list_airtable_colabs') {
         await USERS_KV.put(j.user.id, j.actions[0].selected_option.value)
       } else if (j.actions[0].action_id === 'desvincular') {
-        console.log('Borrando ', j.actions[0].value)
         await USERS_KV.delete(j.actions[0].value)
       } else if (j.actions[0].action_id === 'completar') {
         return sendValues(j.actions[0].value, request)
@@ -28,6 +27,11 @@ export async function handleRequest(request: Request): Promise<Response> {
           'semana:'.length,
           'semana:'.length + 6,
         )
+
+        const slackUser = j.user.id
+        const user: User | null = await USERS_KV.get(slackUser, 'json')
+        if (!user) throw new Error('[Abrir notas] No había usuario en el KV')
+        const row = await airtable.find(user, semana)
 
         return slack.openModal(j.trigger_id, 'Notas', [
           {
@@ -42,7 +46,7 @@ export async function handleRequest(request: Request): Promise<Response> {
               action_id: 'accion_notas',
               min_length: 0,
               multiline: true,
-              // initial_value: j.actions[0].value, TODO
+              initial_value: row ? row.fields.Notes : undefined,
             },
           },
         ])
