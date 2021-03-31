@@ -186,13 +186,15 @@ function opcion(
               value: last[nombre],
             }
           : undefined,
-      options: [...Array(rango).keys()].map((i) => ({
-        text: {
-          type: 'plain_text',
-          text: i.toString(),
-        },
-        value: i.toString(),
-      })),
+      options: [...Array(rango).keys()]
+        .map((i) => (i + 1).toString())
+        .map((i) => ({
+          text: {
+            type: 'plain_text',
+            text: i,
+          },
+          value: i,
+        })),
     },
   }
 }

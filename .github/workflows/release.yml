@@ -20,7 +20,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: 'apiumhub'
-          SENTRY_PROJECT: '5694557'
+          SENTRY_PROJECT: 'excels-autobot'
         with:
           environment: 'production'
           sourcemaps: './dist'
