@@ -1,15 +1,15 @@
 // From webpack DefinePlugin + GitRevisionPlugin
-declare const COMMITHASH: string;
+declare const COMMITHASH: string
 
 // From cloudflare workers
-declare const SLACK_BOT_TOKEN: string; 
-declare const AIRTABLE_KEY: string;
-declare const SENTRY_PROJECT_ID: string;
-declare const SENTRY_PROJECT_KEY: string;
+declare const SLACK_BOT_TOKEN: string
+declare const AIRTABLE_KEY: string
+declare const SENTRY_PROJECT_ID: string
+declare const SENTRY_PROJECT_KEY: string
 
 export default {
   repo: {
-    comithash: COMMITHASH
+    comithash: COMMITHASH,
   },
   environment: process.env.NODE_ENV,
   slack: {

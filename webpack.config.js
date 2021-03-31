@@ -20,8 +20,8 @@ module.exports = {
   plugins: [
     gitRevisionPlugin,
     new webpack.DefinePlugin({
-      'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),
-    })
+      COMMITHASH: JSON.stringify(gitRevisionPlugin.commithash()),
+    }),
   ],
   module: {
     rules: [

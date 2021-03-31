@@ -61,8 +61,8 @@ function toSentryEvent(err: Error, request: Request) {
     },
     extra: extraKeys.length
       ? {
-          // @ts-ignore
           [errType]: extraKeys.reduce(
+            // @ts-ignore
             (obj, key) => ({ ...obj, [key]: err[key] }),
             {},
           ),

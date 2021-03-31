@@ -1,10 +1,9 @@
+import env from './env'
 import { handleRequest } from './handler'
 import { log } from './sentry'
 
-declare const COMMITHASH: string;
-
 addEventListener('fetch', (event) => {
-  console.log(COMMITHASH);
+  console.log(JSON.stringify(env))
 
   event.respondWith(
     handleRequest(event.request).catch((err: Error) =>

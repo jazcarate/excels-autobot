@@ -154,11 +154,10 @@ export async function handleRequest(request: Request): Promise<Response> {
 function opcion(
   nombre: 'Performance' | 'Team' | 'Environment' | 'Growth',
   last: AirTableRecord | null,
+  rango = 4,
 ): Slack.Block {
   const semana = airtable.week(new Date())
   const current = last && last.Week.toString() === semana
-
-  console.log(JSON.stringify({ semana, current, last }))
 
   return {
     type: 'section',
@@ -175,7 +174,7 @@ function opcion(
         text:
           last && last[nombre] && !current
             ? `La semana pasada fue ${last[nombre]}`
-            : '[1-4]',
+            : `[1-${rango}]`,
       },
       initial_option:
         current && last && last[nombre]
@@ -187,36 +186,13 @@ function opcion(
               value: last[nombre],
             }
           : undefined,
-      options: [
-        {
-          text: {
-            type: 'plain_text',
-            text: '1',
-          },
-          value: '1',
+      options: [...Array(rango).keys()].map((i) => ({
+        text: {
+          type: 'plain_text',
+          text: i.toString(),
         },
-        {
-          text: {
-            type: 'plain_text',
-            text: '2',
-          },
-          value: '2',
-        },
-        {
-          text: {
-            type: 'plain_text',
-            text: '3',
-          },
-          value: '3',
-        },
-        {
-          text: {
-            type: 'plain_text',
-            text: '4',
-          },
-          value: '4',
-        },
-      ],
+        value: i.toString(),
+      })),
     },
   }
 }
@@ -241,7 +217,7 @@ async function sendValues(
     opcion('Performance', last),
     opcion('Team', last),
     opcion('Environment', last),
-    opcion('Growth', last),
+    opcion('Growth', last, 3),
     {
       type: 'section',
       block_id: `semana:${airtable.week(new Date())}:Notes`,
