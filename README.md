@@ -18,7 +18,6 @@ Prequisitos: [`Wrangler`](https://developers.cloudflare.com/workers/cli-wrangler
 
 ## TODO
 
-- Check slack token
 - Copiar a toda la gente?
 - Frontend de quienes están activos
 - Borrar el mensaje del última semana si ya lo había mandado

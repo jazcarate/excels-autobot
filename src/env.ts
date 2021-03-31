@@ -6,6 +6,7 @@ declare const SLACK_BOT_TOKEN: string
 declare const AIRTABLE_KEY: string
 declare const SENTRY_PROJECT_ID: string
 declare const SENTRY_PROJECT_KEY: string
+declare const SLACK_BOT_SIGNING_SECRET: string
 
 export default {
   repo: {
@@ -14,6 +15,7 @@ export default {
   environment: process.env.NODE_ENV,
   slack: {
     token: SLACK_BOT_TOKEN,
+    signSecret: SLACK_BOT_SIGNING_SECRET
   },
   airTable: {
     key: AIRTABLE_KEY,

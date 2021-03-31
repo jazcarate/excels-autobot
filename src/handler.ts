@@ -2,10 +2,26 @@ import { log } from './sentry'
 import airtable, { AirTableRecord } from './airtable'
 import { User } from './types'
 import slack, { Slack } from './slack'
+import crypto from 'crypto';
+import env from './env';
 
 declare const USERS_KV: KVNamespace
 
 export async function handleRequest(request: Request): Promise<Response> {
+  const slackSignature = request.headers.get('x-slack-signature')
+  const body = await request.clone().text();
+  const timestamp = request.headers.get('x-slack-request-timestamp');
+
+  if (!slackSignature) return new Response("Slack signature is empty.", { status: 400 })
+  const sigBasestring = 'v0:' + timestamp + ':' + body;
+  let mySignature = 'v0=' +
+    crypto.createHmac('sha256', env.slack.signSecret)
+      .update(sigBasestring, 'utf8')
+      .digest('hex');
+
+  if (mySignature !== slackSignature)
+    return new Response("Verification failed.", { status: 400 })
+
   if (isInteractiveCallback(request)) {
     const data = await request.formData()
     const payload = data.get('payload')
@@ -183,12 +199,12 @@ function opcion(
       initial_option:
         current && last && last[nombre]
           ? {
-              text: {
-                type: 'plain_text',
-                text: last[nombre],
-              },
-              value: last[nombre],
-            }
+            text: {
+              type: 'plain_text',
+              text: last[nombre],
+            },
+            value: last[nombre],
+          }
           : undefined,
       options: [...Array(rango).keys()]
         .map((i) => (i + 1).toString())
@@ -382,7 +398,7 @@ async function publishHome(
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'La última fila en AirTable',
+          text: `La última fila (semana: *${last.Week}*) en AirTable`,
         },
       },
       { type: 'divider' },
@@ -391,23 +407,23 @@ async function publishHome(
         fields: [
           {
             type: 'mrkdwn',
-            text: `*Performance*:\n${last.Performance}`,
+            text: `*Performance*:\n${last.Performance || '`<nada>`'}`,
           },
           {
             type: 'mrkdwn',
-            text: `*Team*:\n${last.Team}`,
+            text: `*Team*:\n${last.Team || '`<nada>`'}`,
           },
           {
             type: 'mrkdwn',
-            text: `*Environment*:\n${last.Environment}`,
+            text: `*Environment*:\n${last.Environment || '`<nada>`'}`,
           },
           {
             type: 'mrkdwn',
-            text: `*Growth*:\n${last.Growth}`,
+            text: `*Growth*:\n${last.Growth || '`<nada>`'}`,
           },
           {
             type: 'mrkdwn',
-            text: `*Notes*:\n${last.Notes}`,
+            text: `*Notes*:\n${last.Notes || '`<nada>`'}`,
           },
         ],
       },
