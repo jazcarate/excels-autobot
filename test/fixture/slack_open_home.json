@@ -1,0 +1,25 @@
+{
+  "api_app_id": "A01S90Z0MTM",
+  "authorizations": [
+    {
+      "enterprise_id": null,
+      "is_bot": true,
+      "is_enterprise_install": false,
+      "team_id": "T4LHL7BTK",
+      "user_id": "U01SL4SJXD0"
+    }
+  ],
+  "event": {
+    "channel": "D01SDCFP7L6",
+    "event_ts": "1616859106.824081",
+    "tab": "messages",
+    "type": "app_home_opened",
+    "user": "U01QSTJ1VTR"
+  },
+  "event_id": "Ev01STBKU344",
+  "event_time": 1616859106,
+  "is_ext_shared_channel": false,
+  "team_id": "T4LHL7BTK",
+  "token": "o8CDLv8UzpLb1rEDsn7r7e8t",
+  "type": "event_callback"
+}

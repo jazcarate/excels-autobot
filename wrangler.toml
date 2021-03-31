@@ -1,0 +1,10 @@
+name = "excels-autobot"
+type = "webpack"
+account_id = "e6f43c3262a160759a3577e3c2c8ce37"
+workers_dev = true
+route = ""
+zone_id = ""
+webpack_config = "webpack.config.js"
+kv_namespaces = [ 
+         { binding = "USERS_KV", id = "f25844cdba054003adb0aaf91dc77262", preview_id = "f25844cdba054003adb0aaf91dc77262" }
+]
