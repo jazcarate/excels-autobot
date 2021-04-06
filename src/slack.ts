@@ -17,8 +17,6 @@ export async function verificar(env: Env, request: Request): Promise<void> {
       .digest('hex')
 
   if (mySignature !== slackSignature) throw 'Verificación fallida.'
-
-  return
 }
 
 export async function publishHome(
@@ -276,16 +274,16 @@ export namespace Slack {
   // https://api.slack.com/apis/connections/events-api#receiving_events
   export type ActionsPayload =
     | {
-        type: 'url_verification'
-        challenge: string
-      }
+      type: 'url_verification'
+      challenge: string
+    }
     | {
-        type: 'event_callback'
-        event: {
-          type: 'app_home_opened'
-          user: string
-        }
+      type: 'event_callback'
+      event: {
+        type: 'app_home_opened'
+        user: string
       }
+    }
 
   export type OptionsPayload = {
     action_id: 'list_airtable_colabs'

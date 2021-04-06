@@ -80,11 +80,11 @@ async function collaborators(): Promise<AirtableEmployee[]> {
   }
 
   const data = await res.json()
-  const colabs = data.records
+
+  return data.records
     .map(({ fields }: any) => fields.Employee)
     .filter((x: any) => x)
-
-  return [...new Set<AirtableEmployee>(colabs)]
+    .filter((x: AirtableEmployee, i: number, a: AirtableEmployee[]) => a.findIndex(y => x.id === y.id) == i);
 }
 
 function week(date: Date): string {
