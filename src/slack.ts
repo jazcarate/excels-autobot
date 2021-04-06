@@ -1,7 +1,31 @@
-import env from './env'
-import { LastMessage, User } from './types'
+import { createHmac } from 'crypto'
+import { Env, LastMessage } from './types'
 
-async function publishHome(userId: string, blocks: Slack.Block[]) {
+export async function verificar(env: Env, request: Request): Promise<void> {
+  const slackSignature = request.headers.get('x-slack-signature')
+
+  if (!slackSignature) throw 'No había firma de Slack.'
+
+  const body = await request.clone().text()
+  const timestamp = request.headers.get('x-slack-request-timestamp')
+
+  const sigBasestring = 'v0:' + timestamp + ':' + body
+  let mySignature =
+    'v0=' +
+    createHmac('sha256', env.slack.signSecret)
+      .update(sigBasestring, 'utf8')
+      .digest('hex')
+
+  if (mySignature !== slackSignature) throw 'Verificación fallida.'
+
+  return
+}
+
+export async function publishHome(
+  env: Env,
+  userId: string,
+  blocks: Slack.Block[],
+): Promise<void> {
   const res = await fetch('https://slack.com/api/views.publish', {
     method: 'POST',
     headers: {
@@ -21,15 +45,16 @@ async function publishHome(userId: string, blocks: Slack.Block[]) {
     const t = await res.text()
     throw new Error(t)
   } else {
-    return res
+    return
   }
 }
 
-async function postMessage(
+export async function chatSend(
+  env: Env,
   userId: string,
   blocks: Slack.Block[],
 ): Promise<Response> {
-  const res = await fetch('https://slack.com/api/chat.postMessage', {
+  const res = await fetch('https://slack.com/api/chat.chatSend', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
@@ -49,7 +74,10 @@ async function postMessage(
   }
 }
 
-async function chatDelete({ ts, channel }: LastMessage): Promise<void> {
+export async function chatDelete(
+  env: Env,
+  { ts, channel }: LastMessage,
+): Promise<void> {
   const res = await fetch('https://slack.com/api/chat.delete', {
     method: 'POST',
     headers: {
@@ -65,11 +93,12 @@ async function chatDelete({ ts, channel }: LastMessage): Promise<void> {
   }
 }
 
-async function openModal(
+export async function openModal(
+  env: Env,
   triggerId: string,
   titulo: string,
   blocks: Slack.Block[],
-) {
+): Promise<void> {
   const body = JSON.stringify({
     trigger_id: triggerId,
     view: {
@@ -99,7 +128,7 @@ async function openModal(
     const t = await res.text()
     throw new Error(t)
   } else {
-    return res
+    return
   }
 }
 
@@ -219,5 +248,3 @@ export namespace Slack {
     | BlockType.Context
     | BlockType.Input
 }
-
-export default { publishHome, postMessage, openModal, chatDelete }

@@ -1,38 +1,40 @@
 import { log } from './sentry'
 import airtable, { AirTableRecord } from './airtable'
-import { User } from './types'
-import slack, { Slack } from './slack'
-import crypto from 'crypto'
+import { Env, User } from './types'
+import {
+  chatDelete,
+  chatSend,
+  openModal,
+  publishHome,
+  Slack,
+  verificar,
+} from './slack'
 import env from './env'
-import { use } from 'chai'
+import { pre, Router, ruta } from './routers'
 
 declare const USERS_KV: KVNamespace
 
 export async function handleRequest(request: Request): Promise<Response> {
-  const slackSignature = request.headers.get('x-slack-signature')
-  const body = await request.clone().text()
-  const timestamp = request.headers.get('x-slack-request-timestamp')
+  const r = ruta({
+    '/slack': pre(
+      (r) => verificar(env, r),
+      ruta({
+        '/slack/interactive': slackInteractive(env),
+        '/slack/options-load': slackOptionsLoad(),
+        '/slack/actions': slackActions(),
+      }),
+    ),
+  })
 
-  if (!slackSignature)
-    return new Response('Slack signature is empty.', { status: 400 })
-  const sigBasestring = 'v0:' + timestamp + ':' + body
-  let mySignature =
-    'v0=' +
-    crypto
-      .createHmac('sha256', env.slack.signSecret)
-      .update(sigBasestring, 'utf8')
-      .digest('hex')
+  return r(request)
+}
 
-  if (mySignature !== slackSignature)
-    return new Response('Verification failed.', { status: 400 })
-
-  if (isInteractiveCallback(request)) {
+function slackInteractive(env: Env): Router {
+  return async (request: Request) => {
     const data = await request.formData()
     const payload = data.get('payload')
 
-    if (!isString(payload)) {
-      throw new Error('No payload in the response.')
-    }
+    if (!isString(payload)) throw new Error('No payload in the response.')
     const j = JSON.parse(payload) // https://api.slack.com/reference/interaction-payloads/block-actions
 
     if (j.type == 'block_actions') {
@@ -41,7 +43,7 @@ export async function handleRequest(request: Request): Promise<Response> {
       } else if (j.actions[0].action_id === 'desvincular') {
         await USERS_KV.delete(j.actions[0].value)
       } else if (j.actions[0].action_id === 'completar') {
-        return sendValues(j.actions[0].value, request)
+        await sendValues(j.actions[0].value)
       } else if (j.actions[0].action_id === 'abrir_notas') {
         const semana = j.actions[0].block_id.slice(
           'semana:'.length,
@@ -53,7 +55,7 @@ export async function handleRequest(request: Request): Promise<Response> {
         if (!user) throw new Error('[Abrir notas] No había usuario en el KV')
         const row = await airtable.find(user, semana)
 
-        return slack.openModal(j.trigger_id, 'Notas', [
+        await openModal(env, j.trigger_id, 'Notas', [
           {
             type: 'input',
             block_id: `semana:${semana}:Notes`,
@@ -90,7 +92,6 @@ export async function handleRequest(request: Request): Promise<Response> {
           throw new Error('[Elijiendo] No había usuario?!')
         }
         await airtable.patch(user, semana, valores)
-        return new Response()
       }
     } else if (j.type == 'view_submission') {
       const nuevaNota: string =
@@ -110,26 +111,35 @@ export async function handleRequest(request: Request): Promise<Response> {
     }
 
     if (j.view && j.view.type == 'home') {
-      return publishHome(j.user.id, request)
+      await refreshHome(j.user.id, request)
     }
-  } else if (isEvents(request)) {
+
+    return new Response()
+  }
+}
+
+function slackActions(): Router {
+  return async (request: Request) => {
     const data = await request.json()
 
     if (data.type == 'url_verification') {
       return new Response(data.challenge)
     } else if (data.event.type == 'app_home_opened') {
       const slackUser = data.event.user
-      return publishHome(slackUser, request)
+      await refreshHome(slackUser, request)
+      return new Response()
     } else {
       throw new Error(`can't recognize ${data.type}`)
     }
-  } else if (isOptionsLoad(request)) {
+  }
+}
+
+function slackOptionsLoad(): Router {
+  return async (request: Request) => {
     const data = await request.formData()
     const payload = data.get('payload')
 
-    if (!isString(payload)) {
-      throw new Error('No payload in the response.')
-    }
+    if (!isString(payload)) throw new Error('No payload in the response.')
     const j = JSON.parse(payload)
 
     if (j.action_id !== 'list_airtable_colabs') {
@@ -171,8 +181,6 @@ export async function handleRequest(request: Request): Promise<Response> {
       { headers: { 'Content-Type': 'application/json;charset=UTF-8' } },
     )
   }
-
-  return new Response()
 }
 
 function opcion(
@@ -203,12 +211,12 @@ function opcion(
       initial_option:
         current && last && last[nombre]
           ? {
-            text: {
-              type: 'plain_text',
-              text: last[nombre],
-            },
-            value: last[nombre],
-          }
+              text: {
+                type: 'plain_text',
+                text: last[nombre],
+              },
+              value: last[nombre],
+            }
           : undefined,
       options: [...Array(rango).keys()]
         .map((i) => (i + 1).toString())
@@ -223,10 +231,7 @@ function opcion(
   }
 }
 
-async function sendValues(
-  slackUser: string,
-  request: Request,
-): Promise<Response> {
+async function sendValues(slackUser: string): Promise<void> {
   const semana = airtable.week(new Date())
   const user: User | null = await USERS_KV.get(slackUser, 'json')
   if (!user) throw new Error('[sendValues] No había usuario en el KV')
@@ -264,20 +269,16 @@ async function sendValues(
     },
   ]
 
-  if (user.lastMessage && isSoonEnoughToDelete(user.lastMessage.ts)) await slack.chatDelete(user.lastMessage)
-  const r = await slack.postMessage(slackUser, blocks)
+  if (user.lastMessage && isSoonEnoughToDelete(user.lastMessage.ts))
+    await chatDelete(env, user.lastMessage)
+  const r = await chatSend(env, slackUser, blocks)
   const { ts, channel } = await r.json()
 
   user.lastMessage = { ts, channel }
-  await USERS_KV.put(slackUser, JSON.stringify(user));
-
-  return new Response()
+  await USERS_KV.put(slackUser, JSON.stringify(user))
 }
 
-async function publishHome(
-  slackUser: string,
-  request: Request,
-): Promise<Response> {
+async function refreshHome(slackUser: string, request: Request): Promise<void> {
   const blocks: Slack.Block[] = [
     {
       type: 'header',
@@ -291,10 +292,21 @@ async function publishHome(
       text: {
         type: 'mrkdwn',
         text:
-          'TODO intrucciónes :stuck_out_tongue:\n<https://airtable.com/tblGvMhtrmqeAqkiD/viwrgU7D4QeJLyWae?blocks=hide|Ir directamente a AirTable>',
+          'Tradicionalmente, cada viernes tenemos una reunión dónde compartimos las últimas novedades, actualizaciones de los proyectos de los clientes, la satisfacción de ellos, el desarrollo de las personas, etc.\n' +
+          'Para hacer un seguimiento personal de cada uno, completamos en una tabla la puntuación de distintos ejes.\n' +
+          '👇 Aquí puedes ver la información más reciente en la planilla, y pedirme que te envíe un mensaje para completar o actualizar tus valoraciones.\n' +
+          '_Por cualquier consulta/queja/recomendación, puedes contactar a mi creador <@U01QSTJ1VTR>._',
       },
     },
     { type: 'divider' },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text:
+          '<https://airtable.com/tblGvMhtrmqeAqkiD/viwrgU7D4QeJLyWae?blocks=hide|Ir directamente a AirTable>',
+      },
+    },
   ]
 
   const announcement = await USERS_KV.get('announcement', 'text')
@@ -348,11 +360,10 @@ async function publishHome(
       },
     )
 
-    await slack.publishHome(slackUser, blocks)
-    return new Response()
+    return publishHome(env, slackUser, blocks)
   }
 
-  const loading = slack.publishHome(slackUser, [
+  const loading = publishHome(env, slackUser, [
     ...blocks,
     {
       type: 'section',
@@ -382,8 +393,8 @@ async function publishHome(
     })
 
     await loading
-    await slack.publishHome(slackUser, blocks)
-    return new Response()
+    await publishHome(env, slackUser, blocks)
+    return
   } else {
     if (last.Week.toString() === airtable.week(new Date())) {
       blocks.push({
@@ -466,28 +477,16 @@ async function publishHome(
     })
 
     await loading
-    await slack.publishHome(slackUser, blocks)
-    return new Response()
+    await publishHome(env, slackUser, blocks)
+    return
   }
-}
-
-function isInteractiveCallback(request: Request) {
-  return new URL(request.url).pathname == '/slack/interactive'
-}
-
-function isEvents(request: Request) {
-  return new URL(request.url).pathname == '/slack/actions'
-}
-
-function isOptionsLoad(request: Request) {
-  return new URL(request.url).pathname == '/slack/options-load'
 }
 
 function isString(x: any): x is string {
   return typeof x === 'string' || x instanceof String
 }
 
-const ONE_WEEK_TS = 7 * 24 * 60 * 60 * 1000;
+const ONE_WEEK_TS = 7 * 24 * 60 * 60 * 1000
 function isSoonEnoughToDelete(ts: string) {
   return parseFloat(ts) * 1000 + ONE_WEEK_TS > Date.now()
 }

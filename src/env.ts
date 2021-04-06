@@ -1,3 +1,5 @@
+import { Env } from './types'
+
 // From webpack DefinePlugin + GitRevisionPlugin
 declare const COMMITHASH: string
 
@@ -8,7 +10,7 @@ declare const SENTRY_PROJECT_ID: string
 declare const SENTRY_PROJECT_KEY: string
 declare const SLACK_BOT_SIGNING_SECRET: string
 
-export default {
+const env: Env = {
   repo: {
     comithash: COMMITHASH,
   },
@@ -25,3 +27,5 @@ export default {
     key: SENTRY_PROJECT_KEY,
   },
 }
+
+export default env
