@@ -24,7 +24,7 @@ async function findOne(
 
   const res = await fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
-      new URLSearchParams(params),
+    new URLSearchParams(params),
     {
       headers: {
         Authorization: `Bearer ${env.airTable.key}`,
@@ -62,12 +62,11 @@ interface AirtableEmployee {
 async function collaborators(): Promise<AirtableEmployee[]> {
   const params = {
     view: 'Weekly',
-    filterByFormula: `Week='${week(new Date(Date.now() - LAST_WEEK_TIME))}'`,
     'fields[]': 'Employee',
   }
   const res = await fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
-      new URLSearchParams(params),
+    new URLSearchParams(params),
     {
       headers: {
         Authorization: `Bearer ${env.airTable.key}`,
@@ -81,9 +80,11 @@ async function collaborators(): Promise<AirtableEmployee[]> {
   }
 
   const data = await res.json()
-  return data.records
+  const colabs = data.records
     .map(({ fields }: any) => fields.Employee)
     .filter((x: any) => x)
+
+  return [...new Set<AirtableEmployee>(colabs)]
 }
 
 function week(date: Date): string {

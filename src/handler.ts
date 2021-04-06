@@ -347,7 +347,7 @@ async function refreshHome(slackUser: string): Promise<void> {
           {
             type: 'mrkdwn',
             text:
-              'La lista es generada según la última semana en AirTable. Si no aparaces, tendrás que cargarlo a mano y volver la proxima semana.',
+              'La lista es generada según las últimas semanas en AirTable. Si no aparaces, tendrás que cargarlo a mano y volver la proxima semana.',
           },
         ],
       },
