@@ -4,6 +4,13 @@ interface PathDict {
   [key: string]: Router
 }
 
+export function bind<A, B, C>(
+  f: (r: A) => Promise<B>,
+  g: (r: B) => Promise<C>,
+): (r: A) => Promise<C> {
+  return (a) => f(a).then(g)
+}
+
 export function pure(err: string, status: number = 200): Router {
   return async () => new Response(err, { status })
 }

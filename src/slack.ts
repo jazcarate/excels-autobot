@@ -247,4 +247,48 @@ export namespace Slack {
     | BlockType.Action
     | BlockType.Context
     | BlockType.Input
+
+  // https://api.slack.com/reference/interaction-payloads/block-actions
+  export type InteractivePayload = {
+    type: 'block_actions'
+    user: {
+      id: string
+    }
+    view?: {
+      type: 'home'
+    }
+    trigger_id: string
+    actions: [
+      {
+        block_id: string
+        action_id: string
+        selected_option: {
+          value: string
+        }
+        value: string
+      },
+    ]
+    state: {
+      values: string[]
+    }
+  }
+
+  // https://api.slack.com/apis/connections/events-api#receiving_events
+  export type ActionsPayload =
+    | {
+        type: 'url_verification'
+        challenge: string
+      }
+    | {
+        type: 'event_callback'
+        event: {
+          type: 'app_home_opened'
+          user: string
+        }
+      }
+
+  export type OptionsPayload = {
+    action_id: 'list_airtable_colabs'
+    value: string
+  }
 }
