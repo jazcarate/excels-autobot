@@ -63,6 +63,8 @@ async function collaborators(): Promise<AirtableEmployee[]> {
   const params = {
     view: 'Weekly',
     'fields[]': 'Employee',
+    'sort[0][field]': 'Week',
+    'sort[0][direction]': 'desc',
   }
   const res = await fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
