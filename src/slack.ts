@@ -52,7 +52,7 @@ export async function chatSend(
   userId: string,
   blocks: Slack.Block[],
 ): Promise<Response> {
-  const res = await fetch('https://slack.com/api/chat.chatSend', {
+  const res = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
