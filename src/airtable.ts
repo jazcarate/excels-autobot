@@ -1,5 +1,4 @@
-import env from './env'
-import { User } from './types'
+import { Env, User } from './types'
 
 export interface AirTableRecord {
   Week: string
@@ -12,6 +11,7 @@ export interface AirTableRecord {
 }
 
 async function findOne(
+  env: Env,
   formula: string,
 ): Promise<{ id: string; fields: AirTableRecord } | null> {
   const params = {
@@ -22,7 +22,7 @@ async function findOne(
     'sort[0][direction]': 'desc',
   }
 
-  const res = await fetch(
+  const res = await env.io.fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
     new URLSearchParams(params),
     {
@@ -46,8 +46,8 @@ async function findOne(
   return data.records[0]
 }
 
-async function lastRowOf(user: User): Promise<AirTableRecord | null> {
-  const x = await findOne(`Employee='${user.airtableName}'`)
+async function lastRowOf(env: Env, user: User): Promise<AirTableRecord | null> {
+  const x = await findOne(env, `Employee='${user.airtableName}'`)
   return x ? x.fields : null
 }
 
@@ -59,14 +59,14 @@ interface AirtableEmployee {
   name: string
 }
 
-async function collaborators(): Promise<AirtableEmployee[]> {
+async function collaborators(env: Env): Promise<AirtableEmployee[]> {
   const params = {
     view: 'Weekly',
     'fields[]': 'Employee',
     'sort[0][field]': 'Week',
     'sort[0][direction]': 'desc',
   }
-  const res = await fetch(
+  const res = await env.io.fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
     new URLSearchParams(params),
     {
@@ -98,19 +98,20 @@ function week(date: Date): string {
   return `${date.getFullYear()}${weknumber}`
 }
 
-async function find(user: User, week: string) {
-  return findOne(`AND(Employee='${user.airtableName}', Week=${week})`)
+async function find(env: Env, user: User, week: string) {
+  return findOne(env, `AND(Employee='${user.airtableName}', Week=${week})`)
 }
 
 async function patch(
+  env: Env,
   user: User,
   week: string,
   rec: Partial<AirTableRecord>,
 ): Promise<void> {
-  const prev = await find(user, week)
+  const prev = await find(env, user, week)
   var res
   if (prev) {
-    res = await fetch(
+    res = await env.io.fetch(
       'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development',
       {
         method: 'PATCH',
@@ -129,7 +130,7 @@ async function patch(
       },
     )
   } else {
-    res = await fetch(
+    res = await env.io.fetch(
       'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development',
       {
         method: 'POST',

@@ -15,6 +15,7 @@ export type Env = {
   }
   environment?: string
   slack: {
+    verifySign: boolean
     token: string
     signSecret: string
   }
@@ -25,4 +26,12 @@ export type Env = {
     projectId: string
     key: string
   }
+  io: {
+    fetch: Fetch,
+    kv: KVNamespace,
+    now: Now
+  }
 }
+
+export type Fetch = (input: RequestInfo, init?: RequestInit) => Promise<Response>
+export type Now = () => Date

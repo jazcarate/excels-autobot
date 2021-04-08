@@ -1,5 +1,5 @@
 import airtable, { AirTableRecord } from './airtable'
-import { User } from './types'
+import { Env, User } from './types'
 import {
   chatDelete,
   chatSend,
@@ -8,24 +8,21 @@ import {
   Slack,
   verificar,
 } from './slack'
-import env from './env'
 import { bind, pre, ruta } from './routers'
 
-declare const USERS_KV: KVNamespace
-
-export async function handleRequest(request: Request): Promise<Response> {
+export async function handleRequest(env: Env, request: Request): Promise<Response> {
   const r = ruta({
     '/slack': pre(
       (r) => verificar(env, r),
       ruta({
-        '/slack/interactive': bind(payload, slackInteractive),
-        '/slack/options-load': bind(payload, slackOptionsLoad),
-        '/slack/actions': bind(json, slackActions),
+        '/interactive': bind(payload, slackInteractive.bind(null, env)),
+        '/options-load': bind(payload, slackOptionsLoad.bind(null, env)),
+        '/actions': bind(json, slackActions.bind(null, env)),
       }),
     ),
   })
 
-  return r(request)
+  return r(request, 0)
 }
 
 const payload = async <T>(request: Request): Promise<T> => {
@@ -41,15 +38,16 @@ const json = async <T>(request: Request): Promise<T> => {
 }
 
 async function slackInteractive(
+  env: Env,
   j: Slack.InteractivePayload,
 ): Promise<Response> {
   if (j.type == 'block_actions') {
     if (j.actions[0].action_id === 'list_airtable_colabs') {
-      await USERS_KV.put(j.user.id, j.actions[0].selected_option.value)
+      await env.io.kv.put(j.user.id, j.actions[0].selected_option.value)
     } else if (j.actions[0].action_id === 'desvincular') {
-      await USERS_KV.delete(j.actions[0].value)
+      await env.io.kv.delete(j.actions[0].value)
     } else if (j.actions[0].action_id === 'completar') {
-      await sendValues(j.actions[0].value)
+      await sendValues(env, j.actions[0].value)
     } else if (j.actions[0].action_id === 'abrir_notas') {
       const semana = j.actions[0].block_id.slice(
         'semana:'.length,
@@ -57,9 +55,9 @@ async function slackInteractive(
       )
 
       const slackUser = j.user.id
-      const user: User | null = await USERS_KV.get(slackUser, 'json')
+      const user: User | null = await env.io.kv.get(slackUser, 'json')
       if (!user) throw new Error('[Abrir notas] No había usuario en el KV')
-      const row = await airtable.find(user, semana)
+      const row = await airtable.find(env, user, semana)
 
       await openModal(env, j.trigger_id, 'Notas', [
         {
@@ -93,11 +91,11 @@ async function slackInteractive(
           .map(([val, x]: any) => [val, x.value]),
       )
 
-      const user: User | null = await USERS_KV.get(j.user.id, 'json')
+      const user: User | null = await env.io.kv.get(j.user.id, 'json')
       if (!user) {
         throw new Error('[Elijiendo] No había usuario?!')
       }
-      await airtable.patch(user, semana, valores)
+      await airtable.patch(env, user, semana, valores)
     }
   } else if (j.type == 'view_submission') {
     const nuevaNota: string =
@@ -108,39 +106,39 @@ async function slackInteractive(
       'semana:'.length + 6,
     )
 
-    const user: User | null = await USERS_KV.get(j.user.id, 'json')
+    const user: User | null = await env.io.kv.get(j.user.id, 'json')
     if (!user) {
       throw new Error('[Elijiendo (moda)] No había usuario?!')
     }
 
-    await airtable.patch(user, semana, { Notes: nuevaNota })
+    await airtable.patch(env, user, semana, { Notes: nuevaNota })
   }
 
   if (j.view && j.view.type == 'home') {
-    await refreshHome(j.user.id)
+    await refreshHome(env, j.user.id)
   }
 
   return new Response()
 }
 
-async function slackActions(data: Slack.ActionsPayload): Promise<Response> {
+async function slackActions(env: Env, data: Slack.ActionsPayload): Promise<Response> {
   if (data.type == 'url_verification') {
     return new Response(data.challenge)
   } else if (data.event.type == 'app_home_opened') {
     const slackUser = data.event.user
-    await refreshHome(slackUser)
+    await refreshHome(env, slackUser)
     return new Response()
   } else {
     throw new Error(`can't recognize ${data.type}`)
   }
 }
 
-async function slackOptionsLoad(j: Slack.OptionsPayload): Promise<Response> {
+async function slackOptionsLoad(env: Env, j: Slack.OptionsPayload): Promise<Response> {
   if (j.action_id !== 'list_airtable_colabs') {
     throw new Error('No idea why it got selected')
   }
 
-  const colalborators = await airtable.collaborators()
+  const colalborators = await airtable.collaborators(env)
 
   const found = colalborators.filter(
     ({ name }) =>
@@ -204,12 +202,12 @@ function opcion(
       initial_option:
         current && last && last[nombre]
           ? {
-              text: {
-                type: 'plain_text',
-                text: last[nombre],
-              },
-              value: last[nombre],
-            }
+            text: {
+              type: 'plain_text',
+              text: last[nombre],
+            },
+            value: last[nombre],
+          }
           : undefined,
       options: [...Array(rango).keys()]
         .map((i) => (i + 1).toString())
@@ -224,11 +222,11 @@ function opcion(
   }
 }
 
-async function sendValues(slackUser: string): Promise<void> {
+async function sendValues(env: Env, slackUser: string): Promise<void> {
   const semana = airtable.week(new Date())
-  const user: User | null = await USERS_KV.get(slackUser, 'json')
+  const user: User | null = await env.io.kv.get(slackUser, 'json')
   if (!user) throw new Error('[sendValues] No había usuario en el KV')
-  const last = await airtable.lastRowOf(user)
+  const last = await airtable.lastRowOf(env, user)
 
   const blocks: Slack.Block[] = [
     {
@@ -268,10 +266,10 @@ async function sendValues(slackUser: string): Promise<void> {
   const { ts, channel } = await r.json()
 
   user.lastMessage = { ts, channel }
-  await USERS_KV.put(slackUser, JSON.stringify(user))
+  await env.io.kv.put(slackUser, JSON.stringify(user))
 }
 
-async function refreshHome(slackUser: string): Promise<void> {
+async function refreshHome(env: Env, slackUser: string): Promise<void> {
   const blocks: Slack.Block[] = [
     {
       type: 'header',
@@ -302,7 +300,7 @@ async function refreshHome(slackUser: string): Promise<void> {
     },
   ]
 
-  const announcement = await USERS_KV.get('announcement', 'text')
+  const announcement = await env.io.kv.get('announcement', 'text')
   if (announcement) {
     blocks.unshift(
       {
@@ -318,7 +316,7 @@ async function refreshHome(slackUser: string): Promise<void> {
     )
   }
 
-  const user = await USERS_KV.get<User>(slackUser, 'json')
+  const user = await env.io.kv.get<User>(slackUser, 'json')
   if (!user) {
     blocks.push(
       {
@@ -367,7 +365,7 @@ async function refreshHome(slackUser: string): Promise<void> {
     },
   ])
 
-  const last = await airtable.lastRowOf(user)
+  const last = await airtable.lastRowOf(env, user)
 
   if (!last) {
     blocks.push({

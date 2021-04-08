@@ -2,6 +2,8 @@ import { createHmac } from 'crypto'
 import { Env, LastMessage } from './types'
 
 export async function verificar(env: Env, request: Request): Promise<void> {
+  if (!env.slack.verifySign) return
+
   const slackSignature = request.headers.get('x-slack-signature')
 
   if (!slackSignature) throw 'No había firma de Slack.'
@@ -24,7 +26,7 @@ export async function publishHome(
   userId: string,
   blocks: Slack.Block[],
 ): Promise<void> {
-  const res = await fetch('https://slack.com/api/views.publish', {
+  const res = await env.io.fetch('https://slack.com/api/views.publish', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
@@ -52,7 +54,7 @@ export async function chatSend(
   userId: string,
   blocks: Slack.Block[],
 ): Promise<Response> {
-  const res = await fetch('https://slack.com/api/chat.postMessage', {
+  const res = await env.io.fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
@@ -76,7 +78,7 @@ export async function chatDelete(
   env: Env,
   { ts, channel }: LastMessage,
 ): Promise<void> {
-  const res = await fetch('https://slack.com/api/chat.delete', {
+  const res = await env.io.fetch('https://slack.com/api/chat.delete', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
@@ -113,7 +115,7 @@ export async function openModal(
     },
   })
 
-  const res = await fetch('https://slack.com/api/views.open', {
+  const res = await env.io.fetch('https://slack.com/api/views.open', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=UTF-8',
@@ -252,8 +254,20 @@ export namespace Slack {
     user: {
       id: string
     }
-    view?: {
-      type: 'home'
+    view: {
+      type?: 'home'
+      blocks: {
+        block_id: string,
+      }[],
+      state: {
+        values: {
+          [key: string]: {
+            accion_notas: {
+              value: string
+            }
+          }
+        }
+      }
     }
     trigger_id: string
     actions: [
