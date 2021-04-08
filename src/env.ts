@@ -33,8 +33,8 @@ const env: Env = {
   io: {
     fetch,
     kv: USERS_KV,
-    now: () => new Date()
-  }
+    now: () => new Date(),
+  },
 }
 
 export default env

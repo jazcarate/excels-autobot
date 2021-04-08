@@ -1,3 +1,7 @@
+export type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>
+}
+
 export interface User {
   airtableId: string
   airtableName: string
@@ -27,11 +31,14 @@ export type Env = {
     key: string
   }
   io: {
-    fetch: Fetch,
-    kv: KVNamespace,
+    fetch: Fetch
+    kv: KVNamespace
     now: Now
   }
 }
 
-export type Fetch = (input: RequestInfo, init?: RequestInit) => Promise<Response>
+export type Fetch = (
+  input: RequestInfo,
+  init?: RequestInit,
+) => Promise<Response>
 export type Now = () => Date

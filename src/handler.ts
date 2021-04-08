@@ -10,7 +10,10 @@ import {
 } from './slack'
 import { bind, pre, ruta } from './routers'
 
-export async function handleRequest(env: Env, request: Request): Promise<Response> {
+export async function handleRequest(
+  env: Env,
+  request: Request,
+): Promise<Response> {
   const r = ruta({
     '/slack': pre(
       (r) => verificar(env, r),
@@ -121,7 +124,10 @@ async function slackInteractive(
   return new Response()
 }
 
-async function slackActions(env: Env, data: Slack.ActionsPayload): Promise<Response> {
+async function slackActions(
+  env: Env,
+  data: Slack.ActionsPayload,
+): Promise<Response> {
   if (data.type == 'url_verification') {
     return new Response(data.challenge)
   } else if (data.event.type == 'app_home_opened') {
@@ -133,7 +139,10 @@ async function slackActions(env: Env, data: Slack.ActionsPayload): Promise<Respo
   }
 }
 
-async function slackOptionsLoad(env: Env, j: Slack.OptionsPayload): Promise<Response> {
+async function slackOptionsLoad(
+  env: Env,
+  j: Slack.OptionsPayload,
+): Promise<Response> {
   if (j.action_id !== 'list_airtable_colabs') {
     throw new Error('No idea why it got selected')
   }
@@ -202,12 +211,12 @@ function opcion(
       initial_option:
         current && last && last[nombre]
           ? {
-            text: {
-              type: 'plain_text',
-              text: last[nombre],
-            },
-            value: last[nombre],
-          }
+              text: {
+                type: 'plain_text',
+                text: last[nombre],
+              },
+              value: last[nombre],
+            }
           : undefined,
       options: [...Array(rango).keys()]
         .map((i) => (i + 1).toString())

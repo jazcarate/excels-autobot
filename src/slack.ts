@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto'
+import { RoutingError } from './routers'
 import { Env, LastMessage } from './types'
 
 export async function verificar(env: Env, request: Request): Promise<void> {
@@ -6,7 +7,7 @@ export async function verificar(env: Env, request: Request): Promise<void> {
 
   const slackSignature = request.headers.get('x-slack-signature')
 
-  if (!slackSignature) throw 'No había firma de Slack.'
+  if (!slackSignature) throw new RoutingError('No había firma de Slack.', 400)
 
   const body = await request.clone().text()
   const timestamp = request.headers.get('x-slack-request-timestamp')
@@ -18,7 +19,8 @@ export async function verificar(env: Env, request: Request): Promise<void> {
       .update(sigBasestring, 'utf8')
       .digest('hex')
 
-  if (mySignature !== slackSignature) throw 'Verificación fallida.'
+  if (mySignature !== slackSignature)
+    throw new RoutingError('Verificación fallida.', 401)
 }
 
 export async function publishHome(
@@ -257,8 +259,8 @@ export namespace Slack {
     view: {
       type?: 'home'
       blocks: {
-        block_id: string,
-      }[],
+        block_id: string
+      }[]
       state: {
         values: {
           [key: string]: {
@@ -288,16 +290,16 @@ export namespace Slack {
   // https://api.slack.com/apis/connections/events-api#receiving_events
   export type ActionsPayload =
     | {
-      type: 'url_verification'
-      challenge: string
-    }
-    | {
-      type: 'event_callback'
-      event: {
-        type: 'app_home_opened'
-        user: string
+        type: 'url_verification'
+        challenge: string
       }
-    }
+    | {
+        type: 'event_callback'
+        event: {
+          type: 'app_home_opened'
+          user: string
+        }
+      }
 
   export type OptionsPayload = {
     action_id: 'list_airtable_colabs'

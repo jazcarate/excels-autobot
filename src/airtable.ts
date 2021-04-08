@@ -24,7 +24,7 @@ async function findOne(
 
   const res = await env.io.fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
-    new URLSearchParams(params),
+      new URLSearchParams(params),
     {
       headers: {
         Authorization: `Bearer ${env.airTable.key}`,
@@ -68,7 +68,7 @@ async function collaborators(env: Env): Promise<AirtableEmployee[]> {
   }
   const res = await env.io.fetch(
     'https://api.airtable.com/v0/apphmB5Cd6nvW66av/People%20Development?' +
-    new URLSearchParams(params),
+      new URLSearchParams(params),
     {
       headers: {
         Authorization: `Bearer ${env.airTable.key}`,
@@ -86,7 +86,10 @@ async function collaborators(env: Env): Promise<AirtableEmployee[]> {
   return data.records
     .map(({ fields }: any) => fields.Employee)
     .filter((x: any) => x)
-    .filter((x: AirtableEmployee, i: number, a: AirtableEmployee[]) => a.findIndex(y => x.id === y.id) == i);
+    .filter(
+      (x: AirtableEmployee, i: number, a: AirtableEmployee[]) =>
+        a.findIndex((y) => x.id === y.id) == i,
+    )
 }
 
 function week(date: Date): string {

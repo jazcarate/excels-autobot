@@ -34,4 +34,4 @@ Es posible levantar una instancia local y apuntar un bot de Slack a esta instanc
 - Frontend de quienes están activos?
 - Cron
 - Logging context
-- Partial apply (inject) envs
+- Correr el CI en Actions

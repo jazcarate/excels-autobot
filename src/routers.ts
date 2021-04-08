@@ -8,7 +8,7 @@ export function bind<A, B, C>(
   f: (r: A, p: number) => Promise<B>,
   g: (r: B, p: number) => Promise<C>,
 ): (r: A, p: number) => Promise<C> {
-  return (a, p) => f(a, p).then(y => g(y, p))
+  return (a, p) => f(a, p).then((y) => g(y, p))
 }
 
 export function pure(err: string, status: number = 200): Router {
@@ -26,6 +26,14 @@ export function ruta(routes: PathDict): Router {
   }
 }
 
+export class RoutingError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 export function pre(
   validar: (r: Request) => Promise<void>,
   inner: Router,
@@ -35,7 +43,12 @@ export function pre(
       await validar(request)
       return inner(request, pos)
     } catch (err) {
-      return pure('prequisitos no correctos: ' + err.message, 400)(request, pos)
+      if (err.status)
+        return pure('prequisitos no correctos: ' + err.message, err.status)(
+          request,
+          pos,
+        )
+      else throw err
     }
   }
 }
