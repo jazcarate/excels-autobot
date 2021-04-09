@@ -14,8 +14,8 @@ Localmente puedes correr lostests y desarollar con solo `node` (combueba la vers
 
 Es posible levantar una instancia local y apuntar un bot de Slack a esta instancia para hacer pruebas.
 
-1. Primero necesitamos levantar la instancia con Wrangler [`Wrangler`](https://developers.cloudflare.com/workers/cli-wrangler/install-update): `$ wrangler dev`.
-1. Crear un tunel con `https` a nuestra nueva instancia. `$ ngrok http 8787`.
+1. Primero necesitamos levantar la instancia con [`wrangler`](https://developers.cloudflare.com/workers/cli-wrangler/install-update): `$ wrangler dev`.
+1. Crear un tunel con `https` a nuestra nueva instancia (yo uso [`ngrok`](https://ngrok.com/)). `$ ngrok http 8787`.
 1. Necesitamos tener un [bot en slack](https://api.slack.com/apps/) instalado en algún workspace con los siguientes permisos:
    - Interactive Components
      - Interactivity: `on`, request URL: `[tunel]/slack/interactive`
@@ -35,3 +35,4 @@ Es posible levantar una instancia local y apuntar un bot de Slack a esta instanc
 - Cron
 - Logging context
 - Correr el CI en Actions
+- Ambiente de test?
