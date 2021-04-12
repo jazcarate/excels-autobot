@@ -3,7 +3,7 @@ import { handleRequest } from '../src/handler'
 import { Slack } from '../src/slack'
 import { RecursivePartial } from '../src/types'
 import { testEnv } from './env'
-import { KVMock, RequestMock as Request } from './mocks'
+import { FetchMock, KVMock, RequestMock as Request } from './mocks'
 import { fixture } from './utils'
 
 describe('#handleRequest', () => {
@@ -53,7 +53,7 @@ describe('#handleRequest', () => {
         ).to.be.rejectedWith(Error, 'No había `payload` en el pedido')
       })
 
-      it.only('foo', async () => {
+      it('foo', async () => {
         const kv = new KVMock({ foo: {} })
 
         const payload: RecursivePartial<Slack.InteractivePayload> = {
@@ -66,16 +66,20 @@ describe('#handleRequest', () => {
           ],
         }
 
-        const fetches: Request[] = []
+        const fetches = new FetchMock([null, req => {
+          expect(req).to.be.eq("https://slack.com/api/chat.postMessage")
+        }], [Promise.resolve(new Response(JSON.stringify({
+          records: []
+        }))), Promise.resolve(new Response(JSON.stringify({ ts: "100", channel: "fooo" })))]);
+
         await handleRequest(
-          testEnv({ io: { kv, fetch: (r: Request) => fetches.push(r) } }),
+          testEnv({ io: { kv, fetch: fetches.fetch() } }),
           new Request('/slack/interactive', {
             body: { payload: JSON.stringify(payload) },
           }),
         )
 
-        expect(fetches).to.have.lengthOf(1)
-        expect(await fetches[0].json()).to.be.equal('foo')
+        expect(fetches.verify()).to.be.true
       })
 
       it.skip('fixture', async () => {

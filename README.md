@@ -36,3 +36,4 @@ Es posible levantar una instancia local y apuntar un bot de Slack a esta instanc
 - Logging context
 - Correr el CI en Actions
 - Ambiente de test?
+- Publicar los resultados de los tests de una forma no horrible

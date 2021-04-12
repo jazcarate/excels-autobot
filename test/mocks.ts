@@ -1,3 +1,5 @@
+import { Fetch } from "../src/types"
+
 export class KVMock implements KVNamespace {
   db: any
 
@@ -199,5 +201,35 @@ export class RequestMock implements Request {
     if (this.bodyUsed) throw new Error('Body already used')
     this.bodyUsed = true
     return Promise.resolve(JSON.stringify(this.mockBody))
+  }
+}
+
+type RequestAssert = ((assert: RequestInfo) => void) | null
+
+export class FetchMock {
+  i: number;
+  asserts: ((assert: RequestInfo) => void)[]
+  responses: Promise<Response>[]
+
+  constructor(asserts: RequestAssert[], responses: Promise<Response>[]) {
+    this.i = 0;
+    this.asserts = asserts;
+    this.responses = responses;
+  }
+
+  fetch(): Fetch {
+    return (input: RequestInfo): Promise<Response> => {
+      const ass = this.asserts[this.i];
+      if (ass) {
+        ass(input)
+      }
+      const ret = this.responses[this.i];
+      this.i++;
+      return ret;
+    }
+  }
+
+  verify(): boolean {
+    return this.i === Math.max(this.asserts.length, this.responses.length);
   }
 }

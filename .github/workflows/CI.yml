@@ -6,7 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy
+    name: CI
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js 15.12.0
